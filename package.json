@@ -65,6 +65,7 @@
     "scripts/*.ps1",
     "meta/**/*.json",
     "README.md",
+    "README.zh.md",
     "!**/*.bak*"
   ]
 }

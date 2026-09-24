@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Local settings and generated output
+.env
+.env.*
+!.env.example
+.npmrc
+*.log
+*.tgz
+coverage/
+
+# Build and delivery artifacts. `dist/` holds packaged releases and unpacked review
+# copies; none of it belongs in the repository.
+dist/
+
+# AgentTeams run state (inbox, roster, task DAG). Process material, not product.
+.agent-teams/
+
+# Local test evidence may contain DSH Web login URLs, session titles and machine paths.
+audit/
+
+# Only the reviewed integration note is public documentation. The remaining reports and
+# correspondence are machine-local working material.
+docs/*
+ui/
+
+# Timestamped backups of the generated patch, written by the sync tooling and by hand
+# during the 2026-09-19/20 incident. They record superseded conclusions and machine
+# paths.
+cordis.patch.yml.bak-*
+*.bak-*
+*.bak
+
+# Local sandbox profiles and scratch state, if anyone points them here
+.sandbox/
+
+# Machine-local documentation: this machine's install paths, incident notes and
+# personal identifiers. Kept in the working tree, never in the published repo.
+docs/private/

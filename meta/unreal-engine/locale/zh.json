@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Unreal Engine MCP",
+    "description": "通过 HTTP 连接 Unreal Engine 自带的本地 MCP 服务。"
+  }
+}

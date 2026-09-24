@@ -1,0 +1,4 @@
+{
+  "name": "dsh-aura-unreal-engine",
+  "description": "Connects to Unreal Engine's own local MCP endpoint over HTTP."
+}

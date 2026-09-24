@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Aura Unreal 编辑器",
+    "description": "通过 Aura 的 Editor MCP 服务修改当前 Unreal 项目。"
+  }
+}

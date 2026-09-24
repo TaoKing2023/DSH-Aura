@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Aura Unreal Editor",
+    "description": "Changes the open Unreal project through Aura's Editor MCP server."
+  }
+}

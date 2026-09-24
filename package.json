@@ -1,0 +1,70 @@
+{
+  "name": "dsh-aura",
+  "version": "0.1.2",
+  "type": "module",
+  "main": "index.js",
+  "description": "Connects DeepSeek Harness to Aura for Unreal, groups project sessions, repairs titles, and adds Unreal workspace guidance.",
+  "license": "MIT",
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "cordis-plugin",
+    "mcp",
+    "unreal-engine",
+    "aura"
+  ],
+  "engines": {
+    "node": ">=22.3",
+    "dsh": ">=0.1.7-rc.1 <0.2.0"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json",
+    "./mcp/unreal-inspector": "./lib/mcp/client.js",
+    "./mcp/unreal-inspector/package.json": "./meta/unreal-inspector/package.json",
+    "./mcp/unreal-inspector/locale/*.json": "./meta/unreal-inspector/locale/*.json",
+    "./mcp/unreal-editor": "./lib/mcp/client.js",
+    "./mcp/unreal-editor/package.json": "./meta/unreal-editor/package.json",
+    "./mcp/unreal-editor/locale/*.json": "./meta/unreal-editor/locale/*.json",
+    "./mcp/unreal-engine": "./lib/mcp/client.js",
+    "./mcp/unreal-engine/package.json": "./meta/unreal-engine/package.json",
+    "./mcp/unreal-engine/locale/*.json": "./meta/unreal-engine/locale/*.json"
+  },
+  "scripts": {
+    "test": "node --import ./tests/helpers/register-resolver.mjs --test \"tests/**/*.test.mjs\"",
+    "test:mcp": "node --import ./tests/helpers/register-resolver.mjs --test \"tests/mcp-*.test.mjs\"",
+    "e2e:new": "node tests/e2e/sandbox-e2e.mjs --round=new",
+    "e2e:old": "node tests/e2e/sandbox-e2e.mjs --round=old",
+    "mcp:check": "node scripts/Sync-AuraMcp.mjs --check",
+    "mcp:dry-run": "node scripts/Sync-AuraMcp.mjs --dry-run",
+    "mcp:emit-bundle-patch": "node scripts/Sync-AuraMcp.mjs --emit-bundle-patch cordis.patch.yml",
+    "channel": "node scripts/Sync-AuraMcp.mjs --channel",
+    "e2e:negative": "node tests/e2e/sandbox-e2e.mjs --round=new --negative=true"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "^3.18.2",
+    "js-yaml": "^4.1.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-llm": "^0.1.6-alpha.2 || ^0.1.7-rc.1",
+    "@deepseek-ai/dsh-mcp-client": "^0.1.6-alpha.2 || ^0.1.7-rc.1"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-mcp-client": "^0.1.6-alpha.2"
+  },
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "lib/**/*.js",
+    "scripts/**/*.mjs",
+    "scripts/*.ps1",
+    "meta/**/*.json",
+    "README.md",
+    "!**/*.bak*"
+  ]
+}

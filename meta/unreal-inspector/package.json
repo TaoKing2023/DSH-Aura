@@ -1,0 +1,4 @@
+{
+  "name": "dsh-aura-unreal-inspector",
+  "description": "Connects Aura's Unreal Inspector MCP server for reading the open project's assets and editor state."
+}

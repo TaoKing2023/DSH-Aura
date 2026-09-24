@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Aura Unreal 检查器",
+    "description": "通过 Aura 的 Inspector MCP 服务读取当前 Unreal 项目的资源和编辑器状态。"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Aura Unreal Inspector",
+    "description": "Reads the open Unreal project's assets and editor state through Aura's Inspector MCP server."
+  }
+}

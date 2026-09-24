@@ -1,0 +1,198 @@
+# dsh-aura bundle patch -- CHANNEL B (cold start) ONLY.
+#
+# This file is the layer form of the Aura wiring. It is read by the loader only when
+# `dsh-aura` is listed in `dsh.profile.bundles` AND this package declares
+# `"dsh": { "bundle": { "patch": "./cordis.patch.yml" } }` in its package.json.
+#
+# This IS the shipped shape (2026-09-20): package.json declares dsh.bundle and the harness
+# installs the package itself (plugin_manager -> install_bundle). See README.md "装载".
+#
+# THE PATCH-LAYER SHAPE IS MUTUALLY EXCLUSIVE WITH THIS ONE. If
+# ~/.dsh/profiles/<name>/cordis.patch.yml also provides one of these ids, the loader throws
+# `TypeError: duplicate loader entry id: <id>` and the whole profile fails to boot.
+# Switch with scripts/Sync-AuraMcp.mjs (see README.md); check with:
+#   node scripts/Sync-AuraMcp.mjs --check
+#
+# The three MCP config expressions are resolved at load time from Aura's own config; see the
+# comment above each row.
+- insert:
+    - id: dsh-aura
+      name: 'dsh-aura'
+    - id: mcp-aura-unreal-inspector
+      name: 'dsh-aura/mcp/unreal-inspector'
+      # Resolved at load time from Aura's own config, in this order:
+      #   1) %LOCALAPPDATA%\Programs\aura-client\next\.mcp-config.json  (Aura app; rewritten on project/engine switch)
+      #   2) %USERPROFILE%\.dsh\aura-mcp.json  (written by Aura -> Settings -> MCP Configuration -> Add to Editor,
+      #      choosing any client and typing that path - the app honours a custom path as-is)
+      # Falls back to the literal value baked in at generation time. Regenerate with: Sync-AuraMcp.ps1
+      config: !!js >-
+        (() => { const FB = {"serverName":"unreal_inspector","transport":"streamable-http","url":"http://127.0.0.1:1/mcp","toolCallTimeoutMs":300000,"failOnStartupError":false};
+        let auraUp = false;
+        try {
+        const fs = globalThis.process.getBuiltinModule('node:fs');
+        const env = globalThis.process.env;
+        const forced = env.DSH_AURA_FORCE_STDIO;
+        if (forced === '1' || forced === 'true') { auraUp = true; } else {
+        const bridge = env.DSH_AURA_BRIDGE || ((env.LOCALAPPDATA || '') + '\\Programs\\aura-client\\.Aura\\aura_server_port.txt');
+        const published = fs.readFileSync(bridge, 'utf8').replace(/^\uFEFF/, '').trim();
+        const port = Number(published);
+        auraUp = /^[0-9]+$/.test(published) && Number.isInteger(port) && port > 0 && port < 65536;
+        }
+        } catch (e) { auraUp = false; }
+        if (true && !auraUp) return { serverName: 'unreal_inspector', transport: 'streamable-http', url: 'http://127.0.0.1:1/mcp', toolCallTimeoutMs: 300000, failOnStartupError: false };
+        try { const fs = globalThis.process.getBuiltinModule('node:fs');
+        const env = globalThis.process.env;
+        const path = globalThis.process.getBuiltinModule('node:path');
+        const pinnedRoot = env.DSH_AURA_INSTALL_DIR || '';
+        const defaultRoot = env.LOCALAPPDATA ? path.join(env.LOCALAPPDATA, 'Programs', 'aura-client') : '';
+        const cands = [ (env.LOCALAPPDATA || '') + '\\Programs\\aura-client\\next\\.mcp-config.json', (env.USERPROFILE || '') + '\\.dsh\\aura-mcp.json' ];
+        const lax = env.DSH_AURA_ALLOW_ANY_COMMAND === '1' || env.DSH_AURA_ALLOW_ANY_COMMAND === 'true';
+        const okStdio = (s) => { try {
+        if (typeof s.command !== 'string' || !Array.isArray(s.args) || !s.args.every((x) => typeof x === 'string')) return false;
+        if (lax) return true;
+        if (!true || s.args.length !== 1) return false;
+        const trusted = pinnedRoot || defaultRoot;
+        if (!path.isAbsolute(trusted) || !path.isAbsolute(s.command) || !path.isAbsolute(s.args[0])) return false;
+        const canonical = (p) => { const v = fs.realpathSync(p); return globalThis.process.platform === 'win32' ? v.toLowerCase() : v; };
+        const root = canonical(trusted);
+        const command = path.join(root, 'PortablePython', 'Windows', 'python.exe');
+        const script = path.join(root, 'MCP', FB.serverName + '.py');
+        const equal = (a, b) => a === (globalThis.process.platform === 'win32' ? b.toLowerCase() : b);
+        return equal(canonical(s.command), command) && equal(canonical(s.args[0]), script) && fs.statSync(s.command).isFile() && fs.statSync(s.args[0]).isFile();
+        } catch (e) { return false; } };
+        const okUrl = (u) => { try { const v = new globalThis.URL(String(u)); const h = v.hostname; return (v.protocol === 'http:' || v.protocol === 'https:') && !v.username && !v.password && (h === '127.0.0.1' || h === 'localhost' || h === '[::1]'); } catch (e) { return false; } };
+        for (const p of cands) { try { if (!fs.existsSync(p)) continue;
+        const txt = fs.readFileSync(p, 'utf8').replace(/^\uFEFF/, '');
+        const raw = JSON.parse(txt);
+        const map = (raw && raw.mcpServers) ? raw.mcpServers : raw;
+        const s = map ? map['unreal_inspector'] : null;
+        if (!s) continue;
+        if (s.url) { if (okUrl(s.url)) return { serverName: 'unreal_inspector', transport: 'streamable-http', url: String(s.url), toolCallTimeoutMs: 300000, failOnStartupError: false }; continue; }
+        if (s.command) { if (okStdio(s)) return { serverName: 'unreal_inspector', transport: 'stdio', command: String(s.command), args: (s.args || []).map(String), toolCallTimeoutMs: 300000, failOnStartupError: false }; continue; }
+        } catch (e) { } }
+        const fallbackRoot = pinnedRoot || defaultRoot;
+        if (true && fallbackRoot && path.isAbsolute(fallbackRoot)) { try {
+        const command = path.join(fallbackRoot, 'PortablePython', 'Windows', 'python.exe');
+        const script = path.join(fallbackRoot, 'MCP', FB.serverName + '.py');
+        if (okStdio({ command, args: [script] })) return { serverName: FB.serverName, transport: 'stdio', command, args: [script], toolCallTimeoutMs: FB.toolCallTimeoutMs, failOnStartupError: false };
+        } catch (e) { } }
+        } catch (e) { }
+        return FB;
+        })()
+
+    - id: mcp-aura-unreal-editor
+      name: 'dsh-aura/mcp/unreal-editor'
+      # Resolved at load time from Aura's own config, in this order:
+      #   1) %LOCALAPPDATA%\Programs\aura-client\next\.mcp-config.json  (Aura app; rewritten on project/engine switch)
+      #   2) %USERPROFILE%\.dsh\aura-mcp.json  (written by Aura -> Settings -> MCP Configuration -> Add to Editor,
+      #      choosing any client and typing that path - the app honours a custom path as-is)
+      # Falls back to the literal value baked in at generation time. Regenerate with: Sync-AuraMcp.ps1
+      config: !!js >-
+        (() => { const FB = {"serverName":"unreal_editor","transport":"streamable-http","url":"http://127.0.0.1:1/mcp","toolCallTimeoutMs":900000,"failOnStartupError":false};
+        let auraUp = false;
+        try {
+        const fs = globalThis.process.getBuiltinModule('node:fs');
+        const env = globalThis.process.env;
+        const forced = env.DSH_AURA_FORCE_STDIO;
+        if (forced === '1' || forced === 'true') { auraUp = true; } else {
+        const bridge = env.DSH_AURA_BRIDGE || ((env.LOCALAPPDATA || '') + '\\Programs\\aura-client\\.Aura\\aura_server_port.txt');
+        const published = fs.readFileSync(bridge, 'utf8').replace(/^\uFEFF/, '').trim();
+        const port = Number(published);
+        auraUp = /^[0-9]+$/.test(published) && Number.isInteger(port) && port > 0 && port < 65536;
+        }
+        } catch (e) { auraUp = false; }
+        if (true && !auraUp) return { serverName: 'unreal_editor', transport: 'streamable-http', url: 'http://127.0.0.1:1/mcp', toolCallTimeoutMs: 900000, failOnStartupError: false };
+        try { const fs = globalThis.process.getBuiltinModule('node:fs');
+        const env = globalThis.process.env;
+        const path = globalThis.process.getBuiltinModule('node:path');
+        const pinnedRoot = env.DSH_AURA_INSTALL_DIR || '';
+        const defaultRoot = env.LOCALAPPDATA ? path.join(env.LOCALAPPDATA, 'Programs', 'aura-client') : '';
+        const cands = [ (env.LOCALAPPDATA || '') + '\\Programs\\aura-client\\next\\.mcp-config.json', (env.USERPROFILE || '') + '\\.dsh\\aura-mcp.json' ];
+        const lax = env.DSH_AURA_ALLOW_ANY_COMMAND === '1' || env.DSH_AURA_ALLOW_ANY_COMMAND === 'true';
+        const okStdio = (s) => { try {
+        if (typeof s.command !== 'string' || !Array.isArray(s.args) || !s.args.every((x) => typeof x === 'string')) return false;
+        if (lax) return true;
+        if (!true || s.args.length !== 1) return false;
+        const trusted = pinnedRoot || defaultRoot;
+        if (!path.isAbsolute(trusted) || !path.isAbsolute(s.command) || !path.isAbsolute(s.args[0])) return false;
+        const canonical = (p) => { const v = fs.realpathSync(p); return globalThis.process.platform === 'win32' ? v.toLowerCase() : v; };
+        const root = canonical(trusted);
+        const command = path.join(root, 'PortablePython', 'Windows', 'python.exe');
+        const script = path.join(root, 'MCP', FB.serverName + '.py');
+        const equal = (a, b) => a === (globalThis.process.platform === 'win32' ? b.toLowerCase() : b);
+        return equal(canonical(s.command), command) && equal(canonical(s.args[0]), script) && fs.statSync(s.command).isFile() && fs.statSync(s.args[0]).isFile();
+        } catch (e) { return false; } };
+        const okUrl = (u) => { try { const v = new globalThis.URL(String(u)); const h = v.hostname; return (v.protocol === 'http:' || v.protocol === 'https:') && !v.username && !v.password && (h === '127.0.0.1' || h === 'localhost' || h === '[::1]'); } catch (e) { return false; } };
+        for (const p of cands) { try { if (!fs.existsSync(p)) continue;
+        const txt = fs.readFileSync(p, 'utf8').replace(/^\uFEFF/, '');
+        const raw = JSON.parse(txt);
+        const map = (raw && raw.mcpServers) ? raw.mcpServers : raw;
+        const s = map ? map['unreal_editor'] : null;
+        if (!s) continue;
+        if (s.url) { if (okUrl(s.url)) return { serverName: 'unreal_editor', transport: 'streamable-http', url: String(s.url), toolCallTimeoutMs: 900000, failOnStartupError: false }; continue; }
+        if (s.command) { if (okStdio(s)) return { serverName: 'unreal_editor', transport: 'stdio', command: String(s.command), args: (s.args || []).map(String), toolCallTimeoutMs: 900000, failOnStartupError: false }; continue; }
+        } catch (e) { } }
+        const fallbackRoot = pinnedRoot || defaultRoot;
+        if (true && fallbackRoot && path.isAbsolute(fallbackRoot)) { try {
+        const command = path.join(fallbackRoot, 'PortablePython', 'Windows', 'python.exe');
+        const script = path.join(fallbackRoot, 'MCP', FB.serverName + '.py');
+        if (okStdio({ command, args: [script] })) return { serverName: FB.serverName, transport: 'stdio', command, args: [script], toolCallTimeoutMs: FB.toolCallTimeoutMs, failOnStartupError: false };
+        } catch (e) { } }
+        } catch (e) { }
+        return FB;
+        })()
+
+    - id: mcp-unreal-engine
+      name: 'dsh-aura/mcp/unreal-engine'
+      # Resolved at load time from Aura's own config, in this order:
+      #   1) %LOCALAPPDATA%\Programs\aura-client\next\.mcp-config.json  (Aura app; rewritten on project/engine switch)
+      #   2) %USERPROFILE%\.dsh\aura-mcp.json  (written by Aura -> Settings -> MCP Configuration -> Add to Editor,
+      #      choosing any client and typing that path - the app honours a custom path as-is)
+      # Falls back to the literal value baked in at generation time. Regenerate with: Sync-AuraMcp.ps1
+      config: !!js >-
+        (() => { const FB = {"serverName":"unreal_mcp","transport":"streamable-http","url":"http://127.0.0.1:8000/mcp","toolCallTimeoutMs":300000,"failOnStartupError":false};
+        let auraUp = false;
+        try {
+        const fs = globalThis.process.getBuiltinModule('node:fs');
+        const env = globalThis.process.env;
+        } catch (e) { auraUp = false; }
+        if (false && !auraUp) return { serverName: 'unreal_mcp', transport: 'streamable-http', url: 'http://127.0.0.1:1/mcp', toolCallTimeoutMs: 300000, failOnStartupError: false };
+        try { const fs = globalThis.process.getBuiltinModule('node:fs');
+        const env = globalThis.process.env;
+        const path = globalThis.process.getBuiltinModule('node:path');
+        const pinnedRoot = env.DSH_AURA_INSTALL_DIR || '';
+        const defaultRoot = env.LOCALAPPDATA ? path.join(env.LOCALAPPDATA, 'Programs', 'aura-client') : '';
+        const cands = [ (env.LOCALAPPDATA || '') + '\\Programs\\aura-client\\next\\.mcp-config.json', (env.USERPROFILE || '') + '\\.dsh\\aura-mcp.json' ];
+        const lax = env.DSH_AURA_ALLOW_ANY_COMMAND === '1' || env.DSH_AURA_ALLOW_ANY_COMMAND === 'true';
+        const okStdio = (s) => { try {
+        if (typeof s.command !== 'string' || !Array.isArray(s.args) || !s.args.every((x) => typeof x === 'string')) return false;
+        if (lax) return true;
+        if (!false || s.args.length !== 1) return false;
+        const trusted = pinnedRoot || defaultRoot;
+        if (!path.isAbsolute(trusted) || !path.isAbsolute(s.command) || !path.isAbsolute(s.args[0])) return false;
+        const canonical = (p) => { const v = fs.realpathSync(p); return globalThis.process.platform === 'win32' ? v.toLowerCase() : v; };
+        const root = canonical(trusted);
+        const command = path.join(root, 'PortablePython', 'Windows', 'python.exe');
+        const script = path.join(root, 'MCP', FB.serverName + '.py');
+        const equal = (a, b) => a === (globalThis.process.platform === 'win32' ? b.toLowerCase() : b);
+        return equal(canonical(s.command), command) && equal(canonical(s.args[0]), script) && fs.statSync(s.command).isFile() && fs.statSync(s.args[0]).isFile();
+        } catch (e) { return false; } };
+        const okUrl = (u) => { try { const v = new globalThis.URL(String(u)); const h = v.hostname; return (v.protocol === 'http:' || v.protocol === 'https:') && !v.username && !v.password && (h === '127.0.0.1' || h === 'localhost' || h === '[::1]'); } catch (e) { return false; } };
+        for (const p of cands) { try { if (!fs.existsSync(p)) continue;
+        const txt = fs.readFileSync(p, 'utf8').replace(/^\uFEFF/, '');
+        const raw = JSON.parse(txt);
+        const map = (raw && raw.mcpServers) ? raw.mcpServers : raw;
+        const s = map ? map['unreal_mcp'] : null;
+        if (!s) continue;
+        if (s.url) { if (okUrl(s.url)) return { serverName: 'unreal_mcp', transport: 'streamable-http', url: String(s.url), toolCallTimeoutMs: 300000, failOnStartupError: false }; continue; }
+        if (s.command) { if (okStdio(s)) return { serverName: 'unreal_mcp', transport: 'stdio', command: String(s.command), args: (s.args || []).map(String), toolCallTimeoutMs: 300000, failOnStartupError: false }; continue; }
+        } catch (e) { } }
+        const fallbackRoot = pinnedRoot || defaultRoot;
+        if (false && fallbackRoot && path.isAbsolute(fallbackRoot)) { try {
+        const command = path.join(fallbackRoot, 'PortablePython', 'Windows', 'python.exe');
+        const script = path.join(fallbackRoot, 'MCP', FB.serverName + '.py');
+        if (okStdio({ command, args: [script] })) return { serverName: FB.serverName, transport: 'stdio', command, args: [script], toolCallTimeoutMs: FB.toolCallTimeoutMs, failOnStartupError: false };
+        } catch (e) { } }
+        } catch (e) { }
+        return FB;
+        })()

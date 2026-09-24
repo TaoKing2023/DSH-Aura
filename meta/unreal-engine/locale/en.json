@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Unreal Engine MCP",
+    "description": "Connects to Unreal Engine's own local MCP endpoint over HTTP."
+  }
+}

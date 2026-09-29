@@ -34,3 +34,44 @@ test('named row entry preserves upstream MCP client exports', async () => {
     }
   }
 })
+
+test('the DSH 0.2 MCP bridge executes a tool and projects its response content', async () => {
+  const { createMcpToolDefinition } = await import('@deepseek-ai/dsh-mcp-client')
+  const attachment = { id: 'test-image' }
+  const ctx = {
+    get(service) {
+      if (service === 'attachments') return { saveImages: async () => [attachment] }
+      if (service === 'llm') return { resolveModelInfo: async () => ({ inputModalities: ['image'] }) }
+      return undefined
+    },
+  }
+  let calls = 0
+  const definition = createMcpToolDefinition(ctx, {
+    name: 'mcp__aura__preview',
+    rawName: 'preview',
+    description: 'Preview the current scene',
+    inputSchema: { type: 'object', properties: {} },
+    call: async () => {
+      calls += 1
+      return {
+        content: [
+          { type: 'text', text: 'scene ready' },
+          { type: 'image', mimeType: 'image/png', data: 'AQ==' },
+        ],
+      }
+    },
+  })
+  const exec = {
+    signal: new AbortController().signal,
+    agent: {
+      session: { requestHeader: () => ({ config: { provider: 'test', model: 'vision' } }) },
+      options: {},
+    },
+  }
+
+  const value = await definition.execute({}, exec)
+  const fallback = definition.output.render({}, value)
+  const content = definition.projectContent(exec, { value, content: fallback, isError: false })
+  assert.equal(calls, 1)
+  assert.deepEqual(content, [{ type: 'text', text: 'scene ready' }, { type: 'image', attachment }])
+})

@@ -29,10 +29,21 @@ endpoint. Each MCP component has its own description while sharing the upstream 
 
 - **Node >= 22.3** (it uses `process.getBuiltinModule` in a load-time expression, and the
   guard below is written to fail safe on older runtimes rather than fall through).
-- DeepSeek Harness **0.1.7-rc.1 or newer** and a profile to install into.
+- DeepSeek Harness **0.1.7-rc.1 through the 0.2.x series** and a profile to install into.
 - For the two Unreal rows to actually return tools: **the Aura desktop app running**, with
   UnrealEditor connected to the project you care about. Without it the rows load but report
   no tools — see *Known limits*.
+
+### DSH 0.2 compatibility (dsh-aura 0.1.3)
+
+The `@deepseek-ai/dsh-llm` and `@deepseek-ai/dsh-mcp-client` peer ranges now include
+`0.2.0-rc.1`. This clears the desktop plugin manager's `incompatible-version` status
+without granting a version exemption. Against a clean DSH 0.2.0-rc.1 profile, the bundle
+composed exactly one plugin row and three MCP rows, and the host logged `dsh-aura armed`
+and a successful initial pass. The MCP bridge test calls a tool and checks its text and
+image response projection. `npm test` passed with `DSH_AURA_INSTALL_DIR` unset
+(203 passed, one skipped). These checks do not exercise live Unreal tools; that requires
+Aura and UnrealEditor to be running.
 
 ## Install
 

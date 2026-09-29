@@ -21,8 +21,18 @@
 ## 运行要求
 
 - **Node.js >= 22.3**。插件在加载时使用 `process.getBuiltinModule`；下文的守卫在旧运行时会安全地拒绝启用，而不会继续尝试启动进程。
-- **DeepSeek Harness 0.1.7-rc.1 或更新版本**，以及一个用于安装插件的 profile。
+- **DeepSeek Harness 0.1.7-rc.1 至 0.2.x 系列**，以及一个用于安装插件的 profile。已验证 0.2.0-rc.1 运行时。
 - 要让两个 Aura MCP 组件实际提供工具，需运行 **Aura 桌面应用**，并让 UnrealEditor 连接到目标项目。否则组件可以加载，但不会提供工具，详见「已知限制」。
+
+### DSH 0.2 适配（dsh-aura 0.1.3）
+
+`@deepseek-ai/dsh-llm` 和 `@deepseek-ai/dsh-mcp-client` 的 peer 版本范围现已包含
+`0.2.0-rc.1`，无需授予版本豁免即可消除桌面插件管理器的 `incompatible-version` 状态。
+在隔离的 DSH 0.2.0-rc.1 profile 中，组合配置各有一条插件组件和三条 MCP 组件；
+宿主输出 `dsh-aura armed`，首次检查成功。MCP 桥接测试调用一次工具并检查文本与图片响应。
+清除 `DSH_AURA_INSTALL_DIR` 环境变量后运行 `npm test`，结果为 203 项通过、1 项跳过。
+这些检查未调用真实 Unreal 工具；实际工具验证
+仍需启动 Aura 和 UnrealEditor。
 
 ## 安装
 
